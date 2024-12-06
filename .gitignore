@@ -1,3 +1,6 @@
 *.pdf
 *.tsv
 venv/
+__pycache__/
+files_to_process/*
+common_transactions.csv
