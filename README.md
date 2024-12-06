@@ -18,4 +18,4 @@ Run with:
 
 ## To Do
 
--   process usaa pdf
+-   add translations for transaction details
