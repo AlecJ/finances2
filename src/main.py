@@ -61,20 +61,36 @@ if __name__ == '__main__':
     # Format (for google sheets)
 
     formatted_transactions = []
+
+    # Only include the first occurrence of each date in the output file
+
+    prev_date = None
+
     for txn in sorted_transactions:
+
+        date = txn.get('Date')
+
+        if prev_date and prev_date == date:
+            date = ''
+
         formatted_row = [
-            f"{txn.get('Date')}\t\t\t\t\t",
+            f"{date}\t\t\t\t\t",
             f"{txn.get('Category', '')}\t"
             f"{txn.get('Description')}\t",
             f"${-1 * txn.get('Amount'):.2f}\t\t",
             txn.get('Account Type')
         ]
+
         formatted_transactions.append(formatted_row)
+
+        prev_date = txn.get('Date')
 
     # Output transactions to a tsv
 
     output_file = 'transactions_output.tsv'
+
     with open(output_file, mode="w", newline="", encoding="utf-8") as file:
+
         file.write(
             "Date\t\t\t\t\tCategory\tDescription\tAmount\t\tAccount\n")
 

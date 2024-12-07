@@ -34,6 +34,10 @@ Run with:
 
 -   CC payments and bank transfers
 -   only include the first date for multiple transactions on the same day
--   bank of america savings account
 -   payments received (venmo)
 -   remove trailing empty transactions
+-   add unit tests
+
+-   check parsed as:
+    `	123 -1,	-$502.00		boac`
+    should be -1502.00
