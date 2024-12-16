@@ -9,6 +9,8 @@ directory in this repo.
 
 import os
 
+from pathlib import Path
+
 from PyPDF2 import PdfReader
 
 from parsers import parse_boa, parse_usaa
@@ -87,7 +89,11 @@ if __name__ == '__main__':
 
     # Output transactions to a tsv
 
-    output_file = 'transactions_output.tsv'
+    # Get the path of the project root
+
+    project_root = Path(__file__).resolve().parent.parent
+
+    output_file = os.path.join(project_root, "transactions_output.tsv")
 
     with open(output_file, mode="w", newline="", encoding="utf-8") as file:
 
