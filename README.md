@@ -26,12 +26,20 @@ the transaction.
 
 ## Running the Script
 
+Active virtualenv if not already done:
+`. venv/bin/activate`
+
 Run with:
 `cd src`
 `python main.py`
 
+Output file `transactions_output.tsv` will placed in root directory.
+
 ## To Do
 
+-   rent (check payments)
+-   venmo statement
+-   paypal statement
 -   CC payments and bank transfers
 -   only include the first date for multiple transactions on the same day
 -   payments received (venmo)

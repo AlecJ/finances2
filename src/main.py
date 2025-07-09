@@ -15,7 +15,7 @@ from PyPDF2 import PdfReader
 
 from parsers import parse_boa, parse_usaa
 
-from helpers import get_account_type, convert_common_transactions
+from helpers import get_account_type, convert_common_transactions, process_account_transfers
 
 
 if __name__ == '__main__':
@@ -55,6 +55,8 @@ if __name__ == '__main__':
 
     transactions = convert_common_transactions(transactions)
 
+    transactions = process_account_transfers(transactions)
+
     # Sort transactions by date
 
     sorted_transactions = sorted(
@@ -75,13 +77,29 @@ if __name__ == '__main__':
         if prev_date and prev_date == date:
             date = ''
 
-        formatted_row = [
-            f"{date}\t\t\t\t\t",
-            f"{txn.get('Category', '')}\t"
-            f"{txn.get('Description')}\t",
-            f"${-1 * txn.get('Amount'):.2f}\t\t",
-            txn.get('Account Type')
-        ]
+        # This is income
+        if txn.get('Amount', 1) > 0:
+            formatted_row = [
+                f"{date}\t\t",
+                f"{txn.get('Description', '')}\t",
+                "\t" if not 'Amount' in txn else f"${txn.get('Amount'):.2f}\t",
+                "\t\t\t\t\t",
+                f"{txn.get('Account Type', '')}\t",
+                f"{txn.get('Account Transfer To', '')}\t",
+                f"{txn.get('Transfer Amount', '')}\t",
+            ]
+
+        # This is out-go
+        else:
+            formatted_row = [
+                f"{date}\t\t\t\t\t",
+                f"{txn.get('Category', '')}\t"
+                f"{txn.get('Description')}\t",
+                f"${-1 * txn.get('Amount'):.2f}\t\t",
+                f"{txn.get('Account Type', '')}\t",
+                f"{txn.get('Account Transfer To', '')}\t",
+                f"{txn.get('Transfer Amount', '')}\t",
+            ]
 
         formatted_transactions.append(formatted_row)
 

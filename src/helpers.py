@@ -34,18 +34,12 @@ def convert_common_transactions(transactions):
 
     # load common_transactions into memory
     common_transactions_file_path = '../common_transactions.csv'
-    common_transactions = []
 
-    # if the common_transactions json file is not present, raise an error
+    # if the common_transactions csv file is not present, raise an error
     try:
         with open(common_transactions_file_path, 'r') as file:
-            # Create a CSV reader object
-            csv_reader = csv.DictReader(file)
-
-            # Iterate through the rows and load them into the list as dictionaries
-            for row in csv_reader:
-                # Each row is already a dictionary, so you can append it directly
-                common_transactions.append(row)
+            # Load all rows directly into a list using list comprehension
+            common_transactions = list(csv.DictReader(file))
     except:
         raise FileNotFoundError(
             "common_transactions.csv is missing from the PROJECT ROOT. Add this file to continue.")
@@ -64,6 +58,55 @@ def convert_common_transactions(transactions):
                 transaction['Description'] = common_transaction.get(
                     'cleaned_description')
                 transaction['Category'] = common_transaction.get('category')
+
+        result.append(transaction)
+
+    return result
+
+
+def process_account_transfers(transactions):
+    result = []
+
+    boac_to_boas = ["BOA KeepTheChange"]
+    boas_to_boac = ["Online Banking transfer from SAV 2908"]
+    boac_to_usaa = []
+    boas_to_usaa = []
+    always_delete = ["Online Banking transfer to CHK 8628",
+                     "KEEP THE CHANGE TRANSFER TO ACCT 2908"]
+
+    for transaction in transactions:
+        desc = transaction.get('Description', '')
+
+        if any(substring in desc for substring in boac_to_boas):
+            transaction['Account Type'] = 'boac'
+            transaction['Account Transfer To'] = 'boas'
+            transaction['Transfer Amount'] = transaction['Amount']
+            del transaction['Amount']
+            del transaction['Description']
+
+        elif any(substring in desc for substring in boas_to_boac):
+            transaction['Account Type'] = 'boas'
+            transaction['Account Transfer To'] = 'boac'
+            transaction['Transfer Amount'] = transaction['Amount']
+            del transaction['Amount']
+            del transaction['Description']
+
+        elif any(substring in desc for substring in boac_to_usaa):
+            transaction['Account Type'] = 'boac'
+            transaction['Account Transfer To'] = 'usaa'
+            transaction['Transfer Amount'] = transaction['Amount']
+            del transaction['Amount']
+            del transaction['Description']
+
+        elif any(substring in desc for substring in boas_to_usaa):
+            transaction['Account Type'] = 'boas'
+            transaction['Account Transfer To'] = 'usaa'
+            transaction['Transfer Amount'] = transaction['Amount']
+            del transaction['Amount']
+            del transaction['Description']
+
+        elif any(substring in desc for substring in always_delete):
+            continue
 
         result.append(transaction)
 

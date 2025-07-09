@@ -94,7 +94,7 @@ def parse_boa(reader):
 
     result = []
 
-    transaction_pattern = r"(\d{2}\/\d{2}\/\d{2})([\s\S]*?)(-?\d+\.\d{2})"
+    transaction_pattern = r"(\d{2}\/\d{2}\/\d{2})([\s\S]*?)(-?(?:\d{1,3}(?:,\d{3})+|\d+)\.\d{2})"
 
     for page in reader.pages:
 
@@ -120,7 +120,7 @@ def parse_boa(reader):
                 result.append({
                     'Date': date[:5],
                     'Description': description.strip(),
-                    'Amount': float(amount),
+                    'Amount': float(amount.replace(',', '')),
                     'Account Type': 'boac'
                 })
 
