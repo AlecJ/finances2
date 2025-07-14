@@ -67,12 +67,15 @@ def convert_common_transactions(transactions):
 def process_account_transfers(transactions):
     result = []
 
-    boac_to_boas = ["BOA KeepTheChange"]
-    boas_to_boac = ["Online Banking transfer from SAV 2908"]
-    boac_to_usaa = []
+    boac_to_boas = ["BOA KeepTheChange",]
+    boas_to_boac = ["Online Banking transfer from SAV 2908",]
+    boac_to_usaa = ["USAA CREDIT CARD PAYMENT SAN ANTONIO  TX",
+                    "AUTOMATIC PAYMENT - THANK YOU",]
     boas_to_usaa = []
     always_delete = ["Online Banking transfer to CHK 8628",
-                     "KEEP THE CHANGE TRANSFER TO ACCT 2908"]
+                     "KEEP THE CHANGE TRANSFER TO ACCT 2908",
+                     "USAA.COM PAYMNT  DES:CREDIT CRD",
+                     "USAA CREDIT CARD DES:PAYMENT",]
 
     for transaction in transactions:
         desc = transaction.get('Description', '')
