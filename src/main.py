@@ -43,6 +43,11 @@ if __name__ == '__main__':
 
         account = get_account_type(file_name)
 
+        if account not in ['boa', 'usaa']:
+            print(
+                f"File {file_name} does not match any known account types. Skipping.")
+            continue
+
         if account == 'boa':
             transactions += parse_boa(reader)
 

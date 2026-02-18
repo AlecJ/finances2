@@ -8,7 +8,8 @@ a bank type, which dictates which parser to use.
 
 match_file_name_to_account_type = [
     {"expression": "eStmt_\d{4}-\d{2}-\d{2}.pdf", "type": "boa"},
-    {"expression": "\d{8}_BANK.*\.pdf", "type": "usaa"}
+    {"expression": "\d{8}_BANK.*\.pdf", "type": "usaa"},
+    {"expression": "\d{4}-\d{2}-\d{2}_AMERICAN_EXPRESS_.*_STATEMENT.*\.pdf", "type": "usaa"},
 ]
 
 
