@@ -6,16 +6,6 @@ pasting into Google Sheets.
 
 ## Setup
 
-Install Python3.11.9
-
-Install Libraries:
-`virtualenv venv`
-`source venv/bin/activate`
-`pip install freeze.txt`
-
-Place USAA and Bank of America Bank Statements into the
-`files_to_process` directory.
-
 Copy `common_transactions.csv.EXAMPLE` and rename it to:
 `common_transactions.csv`
 
@@ -24,7 +14,38 @@ can automatically replace the noisy bank statement details with
 a cleaner replacement, as well as automatically add a category to
 the transaction.
 
-## Running the Script
+**Important:** Place the following into the `files_to_process` directory:
+
+- USAA Bank Statements
+- Bank of America Statements
+- Venmo Statements
+- Amazon Orders web pag (downloaded)
+
+## Running with Docker
+
+Files placed in `files_to_process` on the host are available inside the
+container.
+
+Process the statements currently in `files_to_process`:
+`docker compose run --rm finances`
+(or explicitly: `docker compose run --rm finances process`)
+
+Output file `transactions_output.tsv` will placed in root directory.
+
+Run the test suite:
+`docker compose run --rm finances test`
+
+Drop into a shell in the container:
+`docker compose run --rm finances shell`
+
+## Running Locally
+
+Install Python 3.14
+
+Install Libraries:
+`virtualenv venv`
+`source venv/bin/activate`
+`pip install -r freeze.txt`
 
 Active virtualenv if not already done:
 `. venv/bin/activate`
@@ -35,17 +56,16 @@ Run with:
 
 Output file `transactions_output.tsv` will placed in root directory.
 
+## Running Tests Locally
+
+Active virtualenv if not already done:
+`. venv/bin/activate`
+
+Run with (from the project root):
+`pytest`
+
 ## To Do
 
--   rent (check payments)
--   venmo statement
--   paypal statement
--   CC payments and bank transfers
--   only include the first date for multiple transactions on the same day
--   payments received (venmo)
--   remove trailing empty transactions
--   add unit tests
-
--   check parsed as:
-    `	123 -1,	-$502.00		boac`
-    should be -1502.00
+- improve refunds
+- rent (check payments)
+- paypal statement

@@ -1,13 +1,23 @@
 '''
 Parses USAA Bank Statements and returns a list of transactions.
 
+USAA statement lines only give a "MM/DD" date, with no year, so the
+year has to be inferred from the statement's closing date (taken from
+the file name -- see helpers.get_usaa_statement_closing_date). A
+transaction dated later in the year than the closing date must belong
+to the previous year (this only comes up for a statement whose period
+crosses a new year, e.g. closing in January for a period that started
+in December).
+
 Input:
 - reader: A PDF reader that can iterate through the document's text line by line.
+- closing_date: a datetime for the statement's closing date, used to
+  resolve the year for each "MM/DD" transaction date.
 
 Returns:
 A list of transactions with the following format:
 {
-    "Date": date as string,
+    "Date": date as string ("MM/DD/YYYY"),
     "Description": string,
     "Amount": float,
     "Account Type": string
@@ -17,7 +27,7 @@ A list of transactions with the following format:
 import re
 
 
-def parse_usaa(reader):
+def parse_usaa(reader, closing_date):
 
     result = []
 
@@ -62,66 +72,18 @@ def parse_usaa(reader):
                     if amount[-1] == '-':
                         amount = '-' + amount[:-1]
 
+                    month, day = current_transaction[0][:5].split('/')
+                    year = closing_date.year
+
+                    if int(month) > closing_date.month:
+                        year -= 1
+
                     result.append({
-                        'Date': current_transaction[0][:5],
-                        'Description': current_transaction[3].strip(),
+                        'Date': f"{month}/{day}/{year}",
+                        'Description': current_transaction[-2].strip(),
                         'Amount': -1 * float(amount),
                         'Account Type': 'usaa'
                     })
                     current_transaction = []
-
-    return result
-
-
-'''
-Parses Bank of America Bank Statements and returns a list of transactions.
-
-Input:
-- reader: A PDF reader that can iterate through the document's text line by line.
-
-Returns:
-A list of transactions with the following format:
-{
-    "Date": date as string,
-    "Description": string,
-    "Amount": float,
-    "Account Type": string
-}
-'''
-
-
-def parse_boa(reader):
-
-    result = []
-
-    transaction_pattern = r"(\d{2}\/\d{2}\/\d{2})([\s\S]*?)(-?(?:\d{1,3}(?:,\d{3})+|\d+)\.\d{2})"
-
-    for page in reader.pages:
-
-        page_text = page.extract_text()
-        lines = page_text.splitlines()
-
-        # some transactions can be split across two lines
-        # iterate through the current and next line in tandem
-
-        for line, next_line in zip(lines, lines[1:]):
-
-            # regex match for transaction data
-
-            match = re.match(transaction_pattern, line)
-
-            # double check the match with the current and next lines
-
-            if not match and next_line:
-                match = re.match(transaction_pattern, line + next_line)
-
-            if match:
-                date, description, amount = match.groups()
-                result.append({
-                    'Date': date[:5],
-                    'Description': description.strip(),
-                    'Amount': float(amount.replace(',', '')),
-                    'Account Type': 'boac'
-                })
 
     return result

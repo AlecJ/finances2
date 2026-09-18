@@ -9,13 +9,14 @@ directory in this repo.
 
 import os
 
+from datetime import datetime
 from pathlib import Path
 
 from PyPDF2 import PdfReader
 
-from parsers import parse_boa, parse_usaa
+from parsers import parse_boa, parse_usaa, parse_amazon, parse_venmo
 
-from helpers import get_account_type, convert_common_transactions, process_account_transfers
+from helpers import get_account_type, get_usaa_statement_closing_date, convert_common_transactions, process_account_transfers, match_amazon_orders, match_venmo_transactions, match_refunds
 
 
 if __name__ == '__main__':
@@ -25,36 +26,63 @@ if __name__ == '__main__':
     file_directory = '../files_to_process'
     transactions = []
 
+    # Amazon orders and Venmo transactions are matched against their
+    # corresponding generic bank transactions below and folded into the
+    # transaction they matched, rather than being written to the output
+    # TSV as their own rows.
+
+    amazon_orders = []
+    venmo_transactions = []
+
     for file_name in os.listdir(file_directory):
 
         file_path = os.path.join(file_directory, file_name)
 
-        # Check if it's a valid PDF file
+        # Check if it's a valid PDF, HTML, or CSV file
 
-        if not file_name.endswith(".pdf") or not os.path.isfile(file_path):
-            print(f'Skipping either non pdf file or invalid file: {file_name}')
+        if not file_name.endswith((".pdf", ".html", ".csv")) or not os.path.isfile(file_path):
+            print(f'Skipping either unsupported or invalid file: {file_name}')
             continue
-
-        # Load the PDF file
-
-        reader = PdfReader(file_path)
 
         # Parse files depending on the source of the bank statement
 
         account = get_account_type(file_name)
 
-        if account not in ['boa', 'usaa']:
+        if account not in ['boa', 'usaa', 'amazon', 'venmo']:
             print(
                 f"File {file_name} does not match any known account types. Skipping.")
             continue
 
         if account == 'boa':
-            transactions += parse_boa(reader)
+            transactions += parse_boa(PdfReader(file_path))
 
         elif account == 'usaa':
-            transactions += parse_usaa(reader)
+            closing_date = get_usaa_statement_closing_date(file_name)
+            transactions += parse_usaa(PdfReader(file_path), closing_date)
+
+        elif account == 'amazon':
+            amazon_orders += parse_amazon(file_path)
+
+        elif account == 'venmo':
+            venmo_transactions += parse_venmo(file_path)
 
     # After accumulating all transactions into a standard format...
+
+    # Match generic "AMAZON.COM" transactions up with parsed Amazon
+    # orders, to give them a more detailed description
+
+    transactions = match_amazon_orders(transactions, amazon_orders)
+
+    # Match generic "VENMO" transactions up with parsed Venmo
+    # transactions, to give them a more detailed description
+
+    transactions = match_venmo_transactions(transactions, venmo_transactions)
+
+    # Match refund/credit transactions against the purchase they
+    # refunded, so they can be rendered directly under it instead of as
+    # their own separately-dated transaction
+
+    transactions = match_refunds(transactions)
 
     # Attempt to add details to any found common transactions
 
@@ -62,10 +90,12 @@ if __name__ == '__main__':
 
     transactions = process_account_transfers(transactions)
 
-    # Sort transactions by date
+    # Sort transactions by date. Dates are stored as "MM/DD/YYYY", so
+    # they're parsed into real dates rather than sorted as strings --
+    # sorting the raw strings would order by month before year.
 
     sorted_transactions = sorted(
-        transactions, key=lambda x: x["Date"])
+        transactions, key=lambda x: datetime.strptime(x["Date"], '%m/%d/%Y'))
 
     # Format (for google sheets)
 
@@ -75,14 +105,30 @@ if __name__ == '__main__':
 
     prev_date = None
 
+    # Track the date range actually written to the output, for the
+    # summary printed at the end
+
+    first_date = None
+    last_date = None
+
     for txn in sorted_transactions:
 
-        date = txn.get('Date')
+        full_date = txn.get('Date')
 
-        if prev_date and prev_date == date:
+        # The year is only tracked internally (for correct sorting and
+        # matching); the output stays "MM/DD" to match the spreadsheet's
+        # existing format.
+        date = full_date[:5] if full_date else ''
+
+        if prev_date and prev_date == full_date:
             date = ''
 
+        # Skip rows where amount is 0
+        if txn.get('Amount') == 0:
+            continue
+
         # This is income
+        # None is cast as 1 since it represents an account transfer transaction
         if txn.get('Amount', 1) > 0:
             formatted_row = [
                 f"{date}\t\t",
@@ -108,7 +154,27 @@ if __name__ == '__main__':
 
         formatted_transactions.append(formatted_row)
 
-        prev_date = txn.get('Date')
+        # A matched refund is rendered as its own row directly under its
+        # purchase, with no date of its own -- see match_refunds
+
+        refund = txn.get('Refund')
+
+        if refund:
+            formatted_transactions.append([
+                f"\t\t\t\t\t",
+                f"{txn.get('Category', '')}\t"
+                f"{refund['Description']}\t",
+                f"-${refund['Amount']:.2f}\t\t",
+                f"{txn.get('Account Type', '')}\t",
+                f"\t",
+                f"\t",
+            ])
+
+        if first_date is None:
+            first_date = full_date
+        last_date = full_date
+
+        prev_date = full_date
 
     # Output transactions to a tsv
 
@@ -126,4 +192,10 @@ if __name__ == '__main__':
         for txn in formatted_transactions:
             file.write("".join(txn) + '\n')
 
-    print(f"Formatted transactions saved to {output_file}")
+    transaction_count = len(formatted_transactions)
+
+    if transaction_count:
+        print(
+            f"Processed {transaction_count} transaction(s) from {first_date} to {last_date}. Saved to {output_file}")
+    else:
+        print(f"No transactions found. Saved empty file to {output_file}")
