@@ -41,7 +41,8 @@ if __name__ == '__main__':
         # Check if it's a valid PDF, HTML, or CSV file
 
         if not file_name.endswith((".pdf", ".html", ".csv")) or not os.path.isfile(file_path):
-            print(f'Skipping either unsupported or invalid file: {file_name}')
+            display_name = f"{file_name}/" if os.path.isdir(file_path) else file_name
+            print(f'Skipping either unsupported or invalid file: {display_name}')
             continue
 
         # Parse files depending on the source of the bank statement

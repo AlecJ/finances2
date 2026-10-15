@@ -66,6 +66,5 @@ Run with (from the project root):
 
 ## To Do
 
-- improve refunds
 - rent (check payments)
 - paypal statement
